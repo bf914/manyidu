@@ -15,7 +15,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.conf.urls import url, include
-from django.urls import path
+from django.urls import path, re_path
 from rest_framework import routers
 from rest_framework.documentation import include_docs_urls
 from myd import views
@@ -28,13 +28,16 @@ router.register(r'Options', views.OptionsViewSet)
 router.register(r'Paper', views.PaperViewSet)
 router.register(r'Topic', views.TopicViewSet)
 router.register(r'Records', views.RecordsViewSet)
-router.register(r'RecordDetails', views.RecordDetailsViewSet)
+
 
 # 使用自动URL路由连接我们的API。
 # 另外，我们还包括支持浏览器浏览API的登录URL。
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('doc/', include_docs_urls(title="满意度调查接口文档")),
+    path('api/zylist/', views.ZyList.as_view()),
+    path('api/RecordDetails/', views.RecordDetailsAPIView.as_view()),
+    url(r'^api/RecordDetails/(?P<pk>\d+)/$', views.RecordDetailsAPIView.as_view()),
     url(r'^api/', include(router.urls)),
     url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework'))
 ]

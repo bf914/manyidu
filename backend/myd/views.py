@@ -1,10 +1,14 @@
 from django.contrib.auth.models import User, Group
 from myd.models import Category, Options, Paper, Topic, Records, RecordDetails
-from rest_framework import viewsets, filters
-from myd.serializers import UserSerializer, GroupSerializer, CategorySerializeyr, OptionsSerializeyr, PaperSerializeyr, TopicSerializeyr,RecordsSerializeyr, RecordDetailsSerializeyr
+from rest_framework import viewsets, filters,status
+from myd.serializers import UserSerializer, GroupSerializer, CategorySerializer, OptionsSerializer, PaperSerializer, TopicSerializer,RecordsSerializer, RecordDetailsSerializer,TopicAndOptionsSerializer
+from rest_framework.views import APIView
+from rest_framework.response import Response
 from .custom_model_view_set import CustomModelViewSet
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import OptionsFilter
+from .custom_json_response import JsonResponse
+
 
 class UserViewSet(viewsets.ModelViewSet):
     """
@@ -34,7 +38,7 @@ class CategoryViewSet(CustomModelViewSet):
     新增一个分类
     """
     queryset = Category.objects.all()
-    serializer_class = CategorySerializeyr
+    serializer_class = CategorySerializer
 
 
 class OptionsViewSet(CustomModelViewSet):
@@ -49,7 +53,7 @@ class OptionsViewSet(CustomModelViewSet):
     新增一个选项
     """
     queryset = Options.objects.all()
-    serializer_class = OptionsSerializeyr
+    serializer_class = OptionsSerializer
     filter_backends = (DjangoFilterBackend,)
     filterset_class = OptionsFilter
 
@@ -65,7 +69,7 @@ class PaperViewSet(CustomModelViewSet):
     新增一个问卷
     """
     queryset = Paper.objects.all()
-    serializer_class = PaperSerializeyr
+    serializer_class = PaperSerializer
 
 class TopicViewSet(CustomModelViewSet):
     """
@@ -79,7 +83,7 @@ class TopicViewSet(CustomModelViewSet):
     新增一个问题
     """
     queryset = Topic.objects.all()
-    serializer_class = TopicSerializeyr
+    serializer_class = TopicSerializer
 
 class RecordsViewSet(CustomModelViewSet):
     """
@@ -93,20 +97,55 @@ class RecordsViewSet(CustomModelViewSet):
     新增一个调查记录
     """
     queryset = Records.objects.all()
-    serializer_class = RecordsSerializeyr
+    serializer_class = RecordsSerializer
     filter_backends = (DjangoFilterBackend, filters.SearchFilter,filters.OrderingFilter)
     ordering_fields = ["id"]
 
-class RecordDetailsViewSet(CustomModelViewSet):
+class RecordDetailsAPIView(APIView):
+    # 单查群查
     """
-    list:
-    分页查询记录明细对象
-
-    retrieve:
-    查询一个记录明细信息
-
-    create:
-    新增一个记录明细
+    单查：接口：/RecordDetails/(pk)/
+    群查：接口：/RecordDetails/
     """
-    queryset = RecordDetails.objects.all()
-    serializer_class = RecordDetailsSerializeyr
+    def get(self, request, *args, **kwargs):
+        pk = kwargs.get('pk')
+        if pk:
+            obj = RecordDetails.objects.filter(is_delete=False, pk=pk).first()
+            serializer = RecordDetailsSerializer(instance=obj)
+            return Response(data=serializer.data)
+        else:
+            queryset = RecordDetails.objects.filter(is_delete=False).all()
+            serializer = RecordDetailsSerializer(instance=queryset, many=True)
+            return Response(data=serializer.data)
+
+    # 单增群增
+    """
+    单增：接口：/RecordDetails/   数据：dict
+    群增：接口：/RecordDetails/   数据：list
+    """
+    def post(self, request, *args, **kwargs):
+        # 区别单增群增：request.data是{}还是[]
+        if not isinstance(request.data, list):
+            # 单增
+            serializer = RecordDetailsSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)  # 如果校验失败，会直接抛异常，返回给前台
+            obj = serializer.save()
+            # 为什么要将新增的对象重新序列化给前台：序列化与反序列化数据不对等
+            return Response(data=RecordDetailsSerializer(obj).data, status=200)
+        else:
+            # 群增
+            serializer = RecordDetailsSerializer(data=request.data, many=True)
+            serializer.is_valid(raise_exception=True)  # 如果校验失败，会直接抛异常，返回给前台
+            objs = serializer.save()
+            # 为什么要将新增的对象重新序列化给前台：序列化与反序列化数据不对等
+            #return Response(data=RecordDetailsSerializer(objs, many=True).data, status=200)
+            return JsonResponse(data=RecordDetailsSerializer(objs, many=True).data, code=200, msg="success", status=status.HTTP_200_OK)
+
+class ZyList(APIView):
+    def get(self, request):
+        data = Topic.objects.all()
+        info = TopicAndOptionsSerializer(data,many=True)
+        return Response({
+            'code': 200,
+            'zy_list': info.data
+        })

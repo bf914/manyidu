@@ -131,6 +131,7 @@ class RecordDetails(models.Model):
     topic = models.ForeignKey(Topic, on_delete=models.CASCADE, verbose_name="所属问题")
     options = models.ForeignKey(Options, on_delete=models.CASCADE, verbose_name="问题结果")
     created_time = models.DateTimeField(auto_now_add=True, verbose_name="创建时间")
+    is_delete = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = verbose_name_plural = '调查详情'

@@ -10,7 +10,7 @@ class CustomModelViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
-        return JsonResponse(data=serializer.data, msg="success", code=201, status=status.HTTP_201_CREATED,
+        return JsonResponse(data=serializer.data, msg="success", code=200, status=status.HTTP_201_CREATED,
                             headers=headers)
 
     def list(self, request, *args, **kwargs):
